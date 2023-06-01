@@ -63,11 +63,11 @@ class Ping():
         sock.settimeout(TIMEOUT/1000)
         addresses = usocket.getaddrinfo(HOST, 1) # [0][-1] # list of ip addresses
         assert addresses, "Can not take the IP address of host"
-        self.CLIENT_IP = None
+        self.DEST_IP = None
         for addr in addresses:
             try:
                 sock.connect(addr[-1])
-                self.CLIENT_IP = addr[-1][0] #usocket.inet_ntop(usocket.AF_INET, addr[-1][0])
+                self.DEST_IP = addr[-1][0] #usocket.inet_ntop(usocket.AF_INET, addr[-1][0])
                 break
             except:
                 try:
@@ -75,7 +75,7 @@ class Ping():
                 except:
                     pass
                 continue
-        assert self.CLIENT_IP, "Socket not return client ip"
+        assert self.DEST_IP, "Socket not return client ip"
         self.sock = sock
 
         # [ COUNTERS ]
@@ -98,7 +98,7 @@ class Ping():
         self.seq_num = 1
         self.transmitted = 0
         self.received = 0
-        not self.quiet and print("PING %s (%s): %u data bytes" % (self.HOST, self.CLIENT_IP, len(self._PKT)))
+        not self.quiet and print("PING %s (%s): %u data bytes" % (self.HOST, self.DEST_IP, len(self._PKT)))
 
         if self.seqs:
             self.seqs.extend(list(range(self.seq_num, self.COUNT + 1))) # [seq_num, seq_num + 1, ...., seq_num + n])
@@ -172,7 +172,7 @@ class Ping():
                     if h2.checksum == self.checksum(resp[24:]): # except IP header and a part of ICMP header (type, code, checksum)
                         ttl = ustruct.unpack('!B', resp_mv[8:9])[0] # time-to-live
                         self.received += 1
-                        not self.quiet and print("%u bytes from %s: icmp_seq=%u, ttl=%u, time=%f ms" % (len(resp[12:]), self.CLIENT_IP, seq, ttl, t_elasped))
+                        not self.quiet and print("%u bytes from %s: icmp_seq=%u, ttl=%u, time=%f ms" % (len(resp[12:]), self.DEST_IP, seq, ttl, t_elasped))
                         break
                     else:
                         not self.quiet and print("Payload checksum doesnt match")
