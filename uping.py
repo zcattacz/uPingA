@@ -96,7 +96,7 @@ class Ping():
                         return False
                 except:
                     return False
-        return True
+            return True
 
     @micropython.native
     def start(self):
