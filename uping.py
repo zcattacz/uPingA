@@ -176,7 +176,7 @@ class Ping():
 
         except Exception as identifier:
             import errno
-            if identifier.args[0] == errno.EPIPE:
+            if identifier.args[0] == 116: #EPIPE broken pipe:
                 print("Client connection unexpectedly closed")
                 pass
             elif identifier.args[0] == errno.EBADF:
