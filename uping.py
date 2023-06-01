@@ -112,7 +112,7 @@ class Ping():
         self.seq_num = 1
         self.transmitted = 0
         self.received = 0
-        not self.quiet and print("PING %s (%s): %u data bytes" % (self.HOST, self.DEST_IP, len(self._PKT)))
+        if not self.quiet: print("PING %s (%s): %u data bytes" % (self.HOST, self.DEST_IP, len(self._PKT)))
 
         if self.seqs:
             self.seqs.extend(list(range(self.seq_num, self.COUNT + 1))) # [seq_num, seq_num + 1, ...., seq_num + n])
@@ -186,10 +186,10 @@ class Ping():
                     if h2.checksum == self.checksum(resp[24:]): # except IP header and a part of ICMP header (type, code, checksum)
                         ttl = ustruct.unpack('!B', resp_mv[8:9])[0] # time-to-live
                         self.received += 1
-                        not self.quiet and print("%u bytes from %s: icmp_seq=%u, ttl=%u, time=%f ms" % (len(resp[12:]), self.DEST_IP, seq, ttl, t_elasped))
+                        if not self.quiet: print("%u bytes from %s: icmp_seq=%u, ttl=%u, time=%f ms" % (len(resp[12:]), self.DEST_IP, seq, ttl, t_elasped))
                         break
                     else:
-                        not self.quiet and print("Payload checksum doesnt match")
+                        if not self.quiet: print("Payload checksum doesnt match")
                         t_elasped = None
                         break
 
