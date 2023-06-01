@@ -118,13 +118,13 @@ class Ping():
                     break
             utime.sleep_ms(utime.ticks_diff(utime.ticks_ms(), t0))
 
-        losses = round((self.transmitted - self.received) / self.transmitted) * 100
+        losses = round((self.transmitted - self.received)*100 / self.transmitted)
         avg_rtt = round(sum(pongs) / len(pongs), 3) if pongs else None
         from ucollections import namedtuple
         _result = namedtuple("result", ("tx", "rx", "losses", "min", "avg", "max"))
         result = _result(self.transmitted, self.received, losses, min_rtt, avg_rtt, max_rtt)
         if not self.quiet:
-            print(r'%u packets transmitted, %u packets received, %u packet loss' % (self.transmitted, self.received, losses))
+            print(r'%u packets transmitted, %u packets received, %u%% packet loss' % (self.transmitted, self.received, losses))
             if avg_rtt: print(r'round-trip min/avg/max = %r/%r/%r ms' % (min_rtt, avg_rtt, max_rtt))
         else:
             return result
