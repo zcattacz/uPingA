@@ -67,10 +67,15 @@ class Ping():
         for addr in addresses:
             try:
                 sock.connect(addr[-1])
-                self.CLIENT_IP = usocket.inet_ntop(usocket.AF_INET, addr[-1][4:8])
+                self.CLIENT_IP = addr[-1][0] #usocket.inet_ntop(usocket.AF_INET, addr[-1][0])
+                break
             except:
+                try:
+                    sock.close()
+                except:
+                    pass
                 continue
-        assert self.CLIENT_IP, "Connection failed"
+        assert self.CLIENT_IP, "Socket not return client ip"
         self.sock = sock
 
         # [ COUNTERS ]
