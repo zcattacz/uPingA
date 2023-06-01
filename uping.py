@@ -98,6 +98,7 @@ class Ping():
                     return False
         return True
 
+    @micropython.native
     def start(self):
         """
         Starting a ping cycle with the specified settings (like a interval, count e.t.c.)
@@ -148,6 +149,7 @@ class Ping():
         else:
             return result
 
+    @micropython.native
     def ping(self):
         """
         Send ping manually.
