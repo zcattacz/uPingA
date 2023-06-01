@@ -62,30 +62,33 @@ class Ping():
         sock.setblocking(0)
         sock.settimeout(TIMEOUT/1000)
 
-        if self.is_valid_ip(HOST):
-            addresses = usocket.getaddrinfo(HOST, 1) # [0][-1] # list of ip addresses
-            assert addresses, "Can not take the IP address of host"
-            self.DEST_IP = None
-            for addr in addresses:
-                try:
-                    sock.connect(addr[-1])
-                    self.DEST_IP = addr[-1][0] #usocket.inet_ntop(usocket.AF_INET, addr[-1][0])
-                    break
-                except:
-                    try:
-                        sock.close()
-                    except:
-                        pass
-                    continue
-            assert self.DEST_IP, "Socket not return client ip"
-
         self.sock = sock
+        self.DEST_IP = self._connect_to_host(HOST)
 
         # [ COUNTERS ]
         self.seq_num = 1 # Next sequence number
         self.transmitted = 0
         self.received = 0
         self.seqs = None
+
+    def _connect_to_host(self, HOST):
+        if self.is_valid_ip(HOST):
+            self.sock.connect((HOST,1))
+            return HOST
+        addresses = usocket.getaddrinfo(HOST, 1) # [0][-1] # list of ip addresses
+        assert addresses, "Can not take the IP address of host"
+        for addr in addresses:
+            try:
+                self.sock.connect(addr[-1])
+                return addr[-1][0] #usocket.inet_ntop(usocket.AF_INET, addr[-1][0])
+            except Exception as ex:
+                print("_connect_to_host:", ex)
+                try:
+                    self.sock.close()
+                except:
+                    pass
+                continue
+        raise Exception("Can not take the IP address of host")
 
     def is_valid_ip(self, HOST):
         digits = HOST.split(".")
