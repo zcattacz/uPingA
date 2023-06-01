@@ -101,22 +101,22 @@ class Ping():
             self.seqs = list(range(self.seq_num, self.COUNT + 1)) # [1,2,...,count]
 
         # Здесь нужно подвязаться на реальное время
-        while self.seq_num <= self.seq_num + self.COUNT:
-            if t >= self.INTERVAL:
-                pong = self.ping()
-                t = 0
-                rtt = pong[1]
-                if rtt:
-                    pongs.append(rtt)
-                    if not min_rtt or rtt <= min_rtt: min_rtt = round(rtt, 3)
-                    if not max_rtt or rtt >= max_rtt: max_rtt = round(rtt, 3)
-                if len(self.seqs) == 0:
-                    finish = True
-            if finish:
-                break
-
-            utime.sleep_ms(1)
-            t += 1
+        #while self.seq_num <= self.seq_num + self.COUNT:
+        for i in range(0, self.COUNT):
+            t0 = utime.ticks_ms()
+            while True:
+                if utime.ticks_diff(utime.ticks_ms(), t0) <= self.INTERVAL:
+                    pong = self.ping()
+                    t = 0
+                    rtt = pong[1]
+                    if rtt:
+                        pongs.append(rtt)
+                        if not min_rtt or rtt <= min_rtt: min_rtt = round(rtt, 3)
+                        if not max_rtt or rtt >= max_rtt: max_rtt = round(rtt, 3)
+                        break
+                else:
+                    break
+            utime.sleep_ms(utime.ticks_diff(utime.ticks_ms(), t0))
 
         losses = round((self.transmitted - self.received) / self.transmitted) * 100
         avg_rtt = round(sum(pongs) / len(pongs), 3) if pongs else None
