@@ -153,7 +153,10 @@ class Ping():
             return result
 
     @micropython.native
-    def ping(self):
+    def ping(self, host=""):
+        if host != "":
+            gc.collect()
+            self.DEST_IP = self._connect_to_host(host)
         """
         Send ping manually.
         Returns sequense number(int), round-trip time (ms, float), ttl
