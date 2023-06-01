@@ -203,8 +203,11 @@ class Ping():
 
         except Exception as identifier:
             import errno
-            if identifier.args[0] == 116: #EPIPE broken pipe:
-                print("Client connection unexpectedly closed")
+            if identifier.args[0] == errno.ETIMEDOUT: #EPIPE broken pipe:
+                print("Connection closed unexpectedly")
+                pass
+            elif identifier.args[0] == errno.EHOSTUNREACH: #EPIPE broken pipe:
+                print("Host unreachable")
                 pass
             elif identifier.args[0] == errno.EBADF:
                 print("Bad file descriptor.")
