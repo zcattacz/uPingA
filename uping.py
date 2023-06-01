@@ -228,3 +228,18 @@ class Ping():
 
     def close(self):
         self.sock.close()
+if __name__ == "__main__":
+    import wifi
+    wifi.reset()
+    print("waiting for wifi")
+    wifi.connect()
+    icfg = wifi.sta.ifconfig()
+    print(icfg)
+    gw = icfg[2]
+    ##gw = "qq.com"
+    print("ping:", gw)
+    ping = Ping(gw, COUNT=3); ping.start()
+    ping = Ping("bing.com", COUNT=3); ping.start()
+    ping = Ping(gw, COUNT=3); ping.start()
+    ping.ping("bing.com")
+    ping.ping(gw)
