@@ -21,6 +21,7 @@ import usocket
 import ustruct
 import urandom
 import micropython
+import gc
 urandom.seed(utime.ticks_us())
 
 class Ping():
@@ -141,6 +142,7 @@ class Ping():
                     break
             utime.sleep_ms(utime.ticks_diff(utime.ticks_ms(), t0))
 
+        gc.collect()
         losses = round((self.transmitted - self.received)*100 / self.transmitted)
         avg_rtt = round(sum(pongs) / len(pongs), 3) if pongs else None
         from ucollections import namedtuple
@@ -216,6 +218,7 @@ class Ping():
                 raise identifier
         return (seq, t_elasped, ttl)
 
+    @micropython.native
     def checksum(self, data):
         if len(data) & 0x1: # Odd number of bytes
             data += b'\0'
