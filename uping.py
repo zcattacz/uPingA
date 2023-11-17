@@ -34,6 +34,7 @@ class Ping():
         self.TIMEOUT  = TIMEOUT
         self.INTERVAL = INTERVAL
         self.SIZE     = SIZE
+        self.SOURCE   = SOURCE
         self.quiet    = quiet
 
         # prepare packet
@@ -55,15 +56,7 @@ class Ping():
         h.seq = 1
         self.h = h
 
-        # init socket
-        sock = usocket.socket(usocket.AF_INET, usocket.SOCK_RAW, 1)
-        if SOURCE:
-            src_addr = usocket.getaddrinfo(SOURCE, 1)[0][-1] # ip address
-            sock.bind(src_addr)
-        sock.setblocking(0)
-        sock.settimeout(TIMEOUT/1000)
-
-        self.sock = sock
+        self.sock = None
         self.DEST_IP = self._connect_to_host(HOST)
 
         # [ COUNTERS ]
@@ -72,15 +65,62 @@ class Ping():
         self.received = 0
         self.seqs = None
 
+    def sock_connect(self, addr):
+        #close old socket
+        if self.sock and self.sock.fileno() > 0:
+            try:
+                #print("closing opened socket:", self.sock.fileno())
+                self.sock.close()
+                gc.collect()
+            except:
+                pass
+
+        # init socket
+        #print("creating socket for", addr)
+        self.sock = usocket.socket(usocket.AF_INET, usocket.SOCK_RAW, 1)
+        if self.SOURCE:
+            src_addr = usocket.getaddrinfo(self.SOURCE, 1)[0][-1] # ip address
+            self.sock.bind(src_addr)
+        self.sock.setblocking(False)
+
+        poller = uselect.poll()
+        poller.register(self.sock, uselect.POLLIN | uselect.POLLOUT)
+
+        #if not self.quiet: print("print:sock connecting to %s", addr)
+        try:
+            self.sock.connect(addr)
+        except OSError as e:
+            if e.errno != EINPROGRESS:
+                raise e
+
+        #if not self.quiet: print("print:sock polling for connect open")
+        res = poller.poll(self.TIMEOUT)
+        #print("c2u", res)
+        poller.unregister(self.sock)
+        #print("c2ud", res)
+        if not res:
+            #print("c2e", res)
+            self.sock.close()
+            raise OSError('Socket Connect Timeout')
+        
+        if self.sock.fileno() < 0:
+            raise OSError('Socket Connect Failed, RST?')
+        #if not self.quiet: print("ping:", res, self.sock.fileno())
+
+        # Socket connected
+        self.sock.settimeout(self.TIMEOUT/1000)
+
     def _connect_to_host(self, HOST):
         if self.is_valid_ip(HOST):
-            self.sock.connect((HOST,1))
-            return HOST
-        addresses = usocket.getaddrinfo(HOST, 1) # [0][-1] # list of ip addresses
+            addresses = [[(HOST,1)]]
+            #self.sock.connect((HOST,1))
+            #return HOST
+        else:
+            addresses = usocket.getaddrinfo(HOST, 1) # [0][-1] # list of ip addresses
         assert addresses, "Can not take the IP address of host"
         for addr in addresses:
             try:
-                self.sock.connect(addr[-1])
+                self.sock_connect(addr[-1])
                 return addr[-1][0] #usocket.inet_ntop(usocket.AF_INET, addr[-1][0])
             except Exception as ex:
                 print("_connect_to_host:", ex.args, type(ex))
@@ -158,12 +198,20 @@ class Ping():
     def ping(self, host=""):
         if host != "":
             gc.collect()
-            self.DEST_IP = self._connect_to_host(host)
+            try:
+                self.DEST_IP = self._connect_to_host(host)
+                # [ Start over ]
+                self.seq_num = 1
+                self.seqs = [1]
+                self.transmitted = 0
+                self.received = 0
+            except:
+                print("ping: failed to connect to host", self.DEST_IP)
+                pass
         """
         Send ping manually.
         Returns sequense number(int), round-trip time (ms, float), ttl
         """
-        sock = self.sock
         if not self.seqs:
             self.seqs = []
             self.seqs.append(self.seq_num)
@@ -178,7 +226,7 @@ class Ping():
 
         try:
             # send packet
-            if sock.send(self._PKT) == self.SIZE:
+            if self.sock.send(self._PKT) == self.SIZE:
                 self.transmitted += 1
             else:
                 self.seqs.remove(self.seq_num)
@@ -186,7 +234,7 @@ class Ping():
 
             # recv packet
             while 1:
-                resp = sock.recv(self.SIZE + 20) # ICMP header and payload + IP header
+                resp = self.sock.recv(self.SIZE + 20) # ICMP header and payload + IP header
                 resp_mv = memoryview(resp)
                 h2 = uctypes.struct(uctypes.addressof(resp_mv[20:]), self.PKT_DESC, uctypes.BIG_ENDIAN)
                 seq = h2.seq
