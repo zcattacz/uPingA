@@ -22,6 +22,7 @@ import ustruct
 import urandom
 import micropython
 import gc
+import uasyncio as asyncio
 urandom.seed(utime.ticks_us())
 
 class Ping():
@@ -195,7 +196,7 @@ class Ping():
             return result
 
     @micropython.native
-    def ping(self, host=""):
+    async def ping(self, host=""):
         if host != "":
             gc.collect()
             try:
@@ -250,6 +251,7 @@ class Ping():
                         if not self.quiet: print("Payload checksum doesnt match")
                         t_elasped = None
                         break
+                await uasyncio.sleep(0)
 
         except Exception as identifier:
             import errno
