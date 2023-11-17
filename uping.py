@@ -83,7 +83,7 @@ class Ping():
                 self.sock.connect(addr[-1])
                 return addr[-1][0] #usocket.inet_ntop(usocket.AF_INET, addr[-1][0])
             except Exception as ex:
-                print("_connect_to_host:", ex)
+                print("_connect_to_host:", ex.args, type(ex))
                 try:
                     self.sock.close()
                 except:
@@ -206,15 +206,16 @@ class Ping():
         except Exception as identifier:
             import errno
             if identifier.args[0] == errno.ETIMEDOUT: #EPIPE broken pipe:
-                print("Connection closed unexpectedly")
+                print("ping: Connection closed unexpectedly")
                 pass
             elif identifier.args[0] == errno.EHOSTUNREACH: #EPIPE broken pipe:
-                print("Host unreachable")
+                print("ping: Host unreachable")
                 pass
             elif identifier.args[0] == errno.EBADF:
-                print("Bad file descriptor.")
+                print("ping: Bad file descriptor.")
                 pass
             else:
+                print("ping: unknown exception:", identifier.args, type(identifier))
                 raise identifier
         return (seq, t_elasped, ttl)
 
