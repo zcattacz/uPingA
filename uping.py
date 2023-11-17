@@ -14,15 +14,22 @@
 # https://github.com/olavmrk/python-ping/blob/master/ping.py
 # @data: bytes
 
-import utime
-import uselect
-import uctypes
-import usocket
-import ustruct
-import urandom
+import ctypes as uctypes
+import select as uselect
+import socket as usocket
+import struct as ustruct
+import random as urandom
 import micropython
 import gc
-import uasyncio as asyncio
+from sys import implementation as impl
+if impl == "micropython":
+    import uasyncio as asyncio
+    import time as utime
+else:
+    import asyncio
+    utime = micropython.patch_time()
+
+from errno import EINPROGRESS
 urandom.seed(utime.ticks_us())
 
 class Ping():
@@ -40,16 +47,30 @@ class Ping():
 
         # prepare packet
         assert SIZE >= 16, "pkt size too small"
-        self._PKT = b'Q'*SIZE
-        self.PKT_DESC = {
-            "type": uctypes.UINT8 | 0,
-            "code": uctypes.UINT8 | 1,
-            "checksum": uctypes.UINT16 | 2,
-            "id": uctypes.UINT16 | 4,
-            "seq": uctypes.INT16 | 6,
-            "timestamp": uctypes.UINT64 | 8,
-        } # packet header descriptor
-        h = uctypes.struct(uctypes.addressof(self._PKT), self.PKT_DESC, uctypes.BIG_ENDIAN)
+        self._PKT = bytearray(b'Q'*SIZE)
+        if impl == "mpy":
+            self.PKT_DESC = {
+                "type": uctypes.UINT8 | 0,
+                "code": uctypes.UINT8 | 1,
+                "checksum": uctypes.UINT16 | 2,
+                "id": uctypes.UINT16 | 4,
+                "seq": uctypes.INT16 | 6,
+                "timestamp": uctypes.UINT64 | 8,
+            } # packet header descriptor
+            h = uctypes.ustruct(uctypes.addressof(self._PKT), self.PKT_DESC, uctypes.BIG_ENDIAN)
+        else:
+            class PktDesc(uctypes.BigEndianStructure):
+                _pack_ = 1
+                _fields_ = [
+                    ("type", uctypes.c_uint8),
+                    ("code", uctypes.c_uint8),
+                    ("checksum", uctypes.c_uint16),
+                    ("id", uctypes.c_uint16),
+                    ("seq", uctypes.c_int16),
+                    ("timestamp", uctypes.c_uint64)
+                ]
+            self.PKT_DESC =PktDesc
+            h = self.PKT_DESC.from_buffer(self._PKT)
         h.type = 8 # ICMP_ECHO_REQUEST
         h.code = 0
         h.checksum = 0
@@ -185,7 +206,10 @@ class Ping():
             while 1:
                 resp = self.sock.recv(self.SIZE + 20) # ICMP header and payload + IP header
                 resp_mv = memoryview(resp)
-                h2 = uctypes.struct(uctypes.addressof(resp_mv[20:]), self.PKT_DESC, uctypes.BIG_ENDIAN)
+                if impl == "mpy":
+                    h2 = uctypes.struct(uctypes.addressof(resp_mv[20:]), self.PKT_DESC, uctypes.BIG_ENDIAN)
+                else:
+                    h2 = self.PKT_DESC.from_buffer_copy(resp_mv[20:])
                 seq = h2.seq
                 if h2.type==0 and h2.id==h.id and (seq in self.seqs): # 0: ICMP_ECHO_REPLY
                     t_elasped = (utime.ticks_us()-h2.timestamp) / 1000
@@ -199,11 +223,11 @@ class Ping():
                         if not self.quiet: print("Payload checksum doesnt match")
                         t_elasped = None
                         break
-                await uasyncio.sleep(0)
+                await asyncio.sleep(0)
 
         except Exception as identifier:
             import errno
-            if identifier.args[0] == errno.ETIMEDOUT: #EPIPE broken pipe:
+            if identifier.args[0] in [errno.ETIMEDOUT, "timed out"]: #EPIPE broken pipe:
                 print("ping: Connection closed unexpectedly")
                 pass
             elif identifier.args[0] == errno.EHOSTUNREACH: #EPIPE broken pipe:
