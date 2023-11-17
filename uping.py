@@ -153,6 +153,7 @@ class Ping():
                 continue
         raise Exception("Can not take the IP address of host")
 
+    @micropython.native
     def is_valid_ip(self, HOST):
         digits = HOST.split(".")
         if len(digits) == 4:
@@ -164,7 +165,6 @@ class Ping():
                     return False
             return True
 
-    @micropython.native
     async def ping(self, host=""):
         if host != "":
             gc.collect()
