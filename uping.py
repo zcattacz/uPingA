@@ -144,58 +144,6 @@ class Ping():
             return True
 
     @micropython.native
-    def start(self):
-        """
-        Starting a ping cycle with the specified settings (like a interval, count e.t.c.)
-        """
-        t = self.INTERVAL
-        finish = False
-
-        # [ Rtt metrics ]
-        pongs = []
-        min_rtt, max_rtt = None, None
-        # [ Start over ]
-        self.seq_num = 1
-        self.transmitted = 0
-        self.received = 0
-        if not self.quiet: print("PING %s (%s): %u data bytes" % (self.HOST, self.DEST_IP, len(self._PKT)))
-
-        if self.seqs:
-            self.seqs.extend(list(range(self.seq_num, self.COUNT + 1))) # [seq_num, seq_num + 1, ...., seq_num + n])
-        else:
-            self.seqs = list(range(self.seq_num, self.COUNT + 1)) # [1,2,...,count]
-
-        # Здесь нужно подвязаться на реальное время
-        #while self.seq_num <= self.seq_num + self.COUNT:
-        for i in range(0, self.COUNT):
-            t0 = utime.ticks_ms()
-            while True:
-                if utime.ticks_diff(utime.ticks_ms(), t0) <= self.INTERVAL:
-                    pong = self.ping()
-                    t = 0
-                    rtt = pong[1]
-                    if rtt:
-                        pongs.append(rtt)
-                        if not min_rtt or rtt <= min_rtt: min_rtt = round(rtt, 3)
-                        if not max_rtt or rtt >= max_rtt: max_rtt = round(rtt, 3)
-                        break
-                else:
-                    break
-            utime.sleep_ms(utime.ticks_diff(utime.ticks_ms(), t0))
-
-        gc.collect()
-        losses = round((self.transmitted - self.received)*100 / self.transmitted)
-        avg_rtt = round(sum(pongs) / len(pongs), 3) if pongs else None
-        from ucollections import namedtuple
-        _result = namedtuple("result", ("tx", "rx", "losses", "min", "avg", "max"))
-        result = _result(self.transmitted, self.received, losses, min_rtt, avg_rtt, max_rtt)
-        if not self.quiet:
-            print(r'%u packets transmitted, %u packets received, %u%% packet loss' % (self.transmitted, self.received, losses))
-            if avg_rtt: print(r'round-trip min/avg/max = %r/%r/%r ms' % (min_rtt, avg_rtt, max_rtt))
-        else:
-            return result
-
-    @micropython.native
     async def ping(self, host=""):
         if host != "":
             gc.collect()
