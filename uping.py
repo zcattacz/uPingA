@@ -236,6 +236,9 @@ class Ping():
             elif identifier.args[0] == errno.EBADF:
                 print("ping: Bad file descriptor.")
                 pass
+            elif identifier.args[0] == errno.EPERM: # PermissionError
+                print("ping: Permission denied, check setcap/iptables")
+                pass
             else:
                 print("ping: unknown exception:", identifier.args, type(identifier))
                 raise identifier
