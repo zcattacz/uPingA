@@ -59,7 +59,7 @@ class Ping():
                 "seq": uctypes.INT16 | 6,
                 "timestamp": uctypes.UINT64 | 8,
             } # packet header descriptor
-            h = uctypes.ustruct(uctypes.addressof(self._PKT), self.PKT_DESC, uctypes.BIG_ENDIAN)
+            h = uctypes.struct(uctypes.addressof(self._PKT), self.PKT_DESC, uctypes.BIG_ENDIAN)
         else:
             class PktDesc(uctypes.BigEndianStructure):
                 _pack_ = 1
