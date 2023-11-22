@@ -13,8 +13,10 @@
 # Author: Olav Morken
 # https://github.com/olavmrk/python-ping/blob/master/ping.py
 # @data: bytes
-
-import ctypes as uctypes
+try:
+    import uctypes # esp32 doesn't have ctypes
+except:
+    import ctypes as uctypes
 import select as uselect
 import socket as usocket
 import struct as ustruct
@@ -22,7 +24,7 @@ import random as urandom
 import micropython
 import gc
 from sys import implementation as impl
-if impl == "micropython":
+if impl.name == "micropython":
     import uasyncio as asyncio
     import time as utime
 else:
@@ -48,7 +50,7 @@ class Ping():
         # prepare packet
         assert SIZE >= 16, "pkt size too small"
         self._PKT = bytearray(b'Q'*SIZE)
-        if impl == "mpy":
+        if impl.name == "micropython":
             self.PKT_DESC = {
                 "type": uctypes.UINT8 | 0,
                 "code": uctypes.UINT8 | 1,
@@ -206,7 +208,7 @@ class Ping():
             while 1:
                 resp = self.sock.recv(self.SIZE + 20) # ICMP header and payload + IP header
                 resp_mv = memoryview(resp)
-                if impl == "mpy":
+                if impl.name == "micropython":
                     h2 = uctypes.struct(uctypes.addressof(resp_mv[20:]), self.PKT_DESC, uctypes.BIG_ENDIAN)
                 else:
                     h2 = self.PKT_DESC.from_buffer_copy(resp_mv[20:])
