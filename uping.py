@@ -38,11 +38,9 @@ class Ping():
     """
     Create the ping calculating object exemplar
     """
-    def __init__(self, HOST, SOURCE=None, COUNT=4, INTERVAL=1000, SIZE=64, TIMEOUT=5000, quiet=False):
+    def __init__(self, HOST="127.0.0.1", SOURCE=None, SIZE=64, TIMEOUT=5000, quiet=False):
         self.HOST     = HOST
-        self.COUNT    = COUNT
         self.TIMEOUT  = TIMEOUT
-        self.INTERVAL = INTERVAL
         self.SIZE     = SIZE
         self.SOURCE   = SOURCE
         self.quiet    = quiet
