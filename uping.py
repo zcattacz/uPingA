@@ -165,7 +165,7 @@ class Ping():
                     return False
             return True
 
-    async def ping(self, host=""):
+    async def ping(self, host="") -> tuple[int, float, int]:
         if host != "":
             gc.collect()
             try:
