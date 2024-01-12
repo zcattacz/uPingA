@@ -266,18 +266,22 @@ class Ping():
 
     def close(self):
         self.sock.close()
+
+async def ping(addr, interval=1):
+    #ping.quiet = True
+    print(f"ping {addr}")
+    await pingsvc.ping(addr) #calling with host will reset icmp_seq to 1
+    while True:
+        t = time.time()
+        await pingsvc.ping()
+        td = interval-(time.time()-t)
+        if td > 0:
+            await asyncio.sleep(td)
+
 if __name__ == "__main__":
-    import wifi
-    wifi.reset()
-    print("waiting for wifi")
-    wifi.connect()
-    icfg = wifi.sta.ifconfig()
-    print(icfg)
-    gw = icfg[2]
-    ##gw = "qq.com"
-    print("ping:", gw)
-    ping = Ping(gw, COUNT=3); ping.start()
-    ping = Ping("bing.com", COUNT=3); ping.start()
-    ping = Ping(gw, COUNT=3); ping.start()
-    ping.ping("bing.com")
-    ping.ping(gw)
+    import time
+    pingsvc = Ping()
+    try:
+        asyncio.run(ping("8.8.8.8"))
+    finally:
+        asyncio.new_event_loop()
