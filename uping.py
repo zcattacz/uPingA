@@ -147,12 +147,7 @@ class Ping():
         self.sock.settimeout(self.TIMEOUT/1000)
 
     def _connect_to_host(self, HOST):
-        if self.is_valid_ip(HOST):
-            addresses = [[(HOST,1)]]
-            #self.sock.connect((HOST,1))
-            #return HOST
-        else:
-            addresses = usocket.getaddrinfo(HOST, 1) # [0][-1] # list of ip addresses
+        addresses = usocket.getaddrinfo(HOST, 1) # [0][-1] # list of ip addresses
         assert addresses, "Can not take the IP address of host"
         for addr in addresses:
             try:
@@ -165,19 +160,7 @@ class Ping():
                 except:
                     pass
                 continue
-        raise Exception("Can not take the IP address of host")
-
-    @micropython.native
-    def is_valid_ip(self, HOST):
-        digits = HOST.split(".")
-        if len(digits) == 4:
-            for d in digits:
-                try:
-                    if int(d) > 255:
-                        return False
-                except:
-                    return False
-            return True
+        raise Exception("Failed to connect to host", HOST)
 
     async def ping(self, host="") -> tuple[int, float, int]:
         if host != "":
