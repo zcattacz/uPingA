@@ -45,6 +45,9 @@ class Ping():
         self.SOURCE   = SOURCE
         self.quiet    = quiet
 
+        # switch on poll fix on <=1.20.0, see #3826
+        self._use_poll_fix = getattr(impl, "_mpy",2400) <= 2310
+
         # prepare packet
         assert SIZE >= 16, "pkt size too small"
         self._PKT = bytearray(b'Q'*SIZE)
@@ -87,24 +90,7 @@ class Ping():
         self.received = 0
         self.seqs = None
 
-    def sock_connect(self, addr):
-        #close old socket
-        if self.sock and self.sock.fileno() > 0:
-            try:
-                #print("closing opened socket:", self.sock.fileno())
-                self.sock.close()
-                gc.collect()
-            except:
-                pass
-
-        # init socket
-        #print("creating socket for", addr)
-        self.sock = usocket.socket(usocket.AF_INET, usocket.SOCK_RAW, 1)
-        if self.SOURCE:
-            src_addr = usocket.getaddrinfo(self.SOURCE, 1)[0][-1] # ip address
-            self.sock.bind(src_addr)
-        self.sock.setblocking(False)
-
+    def _connect_poll_fix(self, addr):
         poller = uselect.poll()
         poller.register(self.sock, uselect.POLLIN | uselect.POLLOUT)
 
@@ -124,6 +110,34 @@ class Ping():
             #print("c2e", res)
             self.sock.close()
             raise OSError('Socket Connect Timeout')
+
+    def sock_connect(self, addr):
+        #close old socket
+        if self.sock and self.sock.fileno() > 0:
+            try:
+                #print("closing opened socket:", self.sock.fileno())
+                self.sock.close()
+                gc.collect()
+            except:
+                pass
+
+        # init socket
+        #print("creating socket for", addr)
+        self.sock = usocket.socket(usocket.AF_INET, usocket.SOCK_RAW, 1)
+        if self.SOURCE:
+            src_addr = usocket.getaddrinfo(self.SOURCE, 1)[0][-1] # ip address
+            self.sock.bind(src_addr)
+        self.sock.setblocking(False)
+
+        if self._use_poll_fix:
+            self._connect_poll_fix(addr)
+            gc.collect()
+        else:
+            try:
+                self.sock.connect(addr)
+            except Exception as ex:
+                print(type(ex), ex.errno, ex)
+                raise ex
         
         if self.sock.fileno() < 0:
             raise OSError('Socket Connect Failed, RST?')
